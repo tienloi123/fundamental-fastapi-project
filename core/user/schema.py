@@ -18,6 +18,11 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     username:str
     password:str
+    
+class OrderCreateSchema(BaseModel):
+    user_id: int
+    product_id: int
+    quantity: int
 
 class Token(BaseModel):
     access_token:str

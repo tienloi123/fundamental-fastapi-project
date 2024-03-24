@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from .models import User
+from core.user.order.order import create_order
 from dependencies import get_db
-from .schema import UserCreate, UserLogin, Token,RequestProduct,Response,ResponseSchema
+from .schema import UserCreate, UserLogin, Token,RequestProduct,Response,ResponseSchema,OrderCreateSchema
 from . import crud
+from core.user.payment import PaymentRepo
 
 
 user_router = APIRouter()
@@ -59,3 +61,14 @@ async def update_product(request: RequestProduct, db: Session = Depends(get_db))
 async def delete_product(request: RequestProduct,  db: Session = Depends(get_db)):
     crud.remove_product(db, product_id=request.parameter.id)
     return ResponseSchema(code="200", status="Ok", message="Success delete data", result={})
+
+order_router = APIRouter()
+
+@order_router.post("/orders/")
+async def create_order_route(order_data: OrderCreateSchema, db: Session = Depends(get_db)):
+    try:
+        order = create_order(db, user_id=order_data.user_id, product_id=order_data.product_id, quantity=order_data.quantity)
+        PaymentRepo.update_payment_status(db, order.id, "pending")
+        return {"message": "Order created successfully", "order": order}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
